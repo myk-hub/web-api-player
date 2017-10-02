@@ -1,5 +1,5 @@
 {
-  "name": "seed-element",
+  "name": "my-poly-player",
   "version": "1.0.7",
   "authors": [
     "Anonymous <anonymous@example.com>"
@@ -10,7 +10,7 @@
     "polymer",
     "seed"
   ],
-  "main": "seed-element.html",
+  "main": "my-poly-player.html",
   "license": "http://polymer.github.io/LICENSE.txt",
   "homepage": "https://github.com/<USERNAME>/seed-element/",
   "ignore": [
