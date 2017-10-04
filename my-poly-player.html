@@ -9,99 +9,86 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../polymer/polymer.html">
-
+<link rel="import" href="../paper-progress/paper-progress.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://fonts.googleapis.com/css?family=Dosis" rel="stylesheet">
 <!--
 An element providing a solution to no problem in particular.
-
 Example:
-
     <seed-element></seed-element>
-
 Example:
-
     <seed-element>
       <h2>Hello seed-element</h2>
     </seed-element>
-
 @demo demo/index.html
 @hero hero.svg
 -->
 
 <dom-module id="my-poly-player">
   <template>
+
     <style>
-      :host {
-        width: 100%;
-      }
+     #wrapper {
+       width: 80%;
+       border: solid 1px black;
+       border-radius: 4px;
+       margin: 1.5% auto;
+       cursor: pointer;
+       display: flex;
+       flex-direction: row;
+       justify-content: space-between;
+       align-items: center;
+     }
 
-      #left
-      #right {
-        height: 50px;
-        width: 50px;
-        position: relative;
-      }
+     #left {
+       border-radius: 3px;
+       background-color: black;
+     }
+     #flex {
+     }
+     paper-progress {
+       width: 100%;
+       --paper-progress-active-color: black;
+       --paper-progress-height: 1em;
+       --paper-progress-container-color: #D3DAE3;
+     }
+     #play,
+     #pause {
+       font-size: 2em;
+       padding: 0.2em;
+       color: white;
 
-      #left {
-        background-color: blueviolet;
-      }
-
-      .layout-horizontal {
-        display: flex;
-        -ms-flex-direction: row;
-        -webkit-flex-direction: row;
-        flex-direction: row;
-      }
-
-      .flex {
-        -ms-flex: 1;
-        -webkit-flex: 1;
-        flex: 1;
-      }
-
-      .self-start {
-        -ms-align-self: flex-start;
-        -webkit-align-self: flex-start;
-        align-self: flex-start;
-      }
-
-      .self-end {
-        -ms-align-self: flex-end;
-        -webkit-align-self: flex-end;
-        align-self: flex-end;
-      }
-
-      #title {
-        position: absolute;
-        color: blueviolet;
-        font-size: 15px;
-        text-align: center;
-        line-height: 50px;
-        z-index: 2;
-      }
-
-      #wrapper {
-        position: relative;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, .3);
-        cursor: pointer;
-      }
-
-      .fit {
-        position: absolute;
-        margin: auto;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-      }
+     }
+     #title {
+       font-size: 1.4em;
+     }
+     #duration {
+       padding-right: 1em;
+     }
     </style>
-    <div id="wrapper" class="layout-horizontal">
-      <div id="left" class="self-start"></div>
+
+    <div id="wrapper" class="layout-horizontal" on-click="playPause">
+
+      <div id="left" class="self-start">
+         <i id="play" class="fa fa-play fit" hidden$="{{ isPlaying }}"></i>
+         <i id="pause"class="fa fa-pause fit" hidden$="{{ !isPlaying }}"></i>
+      </div>
+
+
       <div class="flex">
-        <div id="title" class="fit">
-          {{title}}
+        <div id="title" class="fit">{{title}}</div>
+        <paper-progress id="progress"></paper-progress>
+        <audio id="audio" src="{{ src }}"></audio>
+      </div>
+
+      <div id="right" class="self-end">
+        <div id="duration" class="fit">
+          <span class="fit">{{ _convertSecToMin(duration) }}</span>
         </div>
       </div>
-      <div id="right" class="self-end"></div>
+
     </div>
   </template>
 
@@ -110,8 +97,71 @@ Example:
       is: 'my-poly-player',
 
       properties: {
-        title: String
+        title: String,
+        src:   String,
+        isPlaying: {
+          type:  Boolean,
+          value: false
+        },
+        duration: {
+          type:  Number,
+          value: 0
+        }
+      },
+
+      playPause: function(e) {
+        e.preventDefault();
+
+        var player = this;
+
+        if ( player.$.audio.paused ) {
+          player.$.audio.play();
+          player.isPlaying = true;
+        } else {
+          player.$.audio.pause();
+          player.isPlaying = false;
+        }
+      },
+
+      listeners: {
+        'audio.loadedmetadata': '_onCanPlay',
+        'audio.playing':        '_startProgressTimer'
+      },
+
+      _onCanPlay: function() {
+        var player = this;
+        player.$.progress.max = player.$.audio.duration * 1000;
+        player.duration = player.$.audio.duration;
+      },
+
+      _startProgressTimer: function() {
+
+        var player = this;
+        player.timer = {};
+
+        if (player.timer.sliderUpdateInterval) {
+          clearInterval(player.timer.sliderUpdateInterval);
+        }
+
+        player.timer.sliderUpdateInterval = setInterval( function(){
+          if ( player.$.audio.paused ) {
+            clearInterval(player.timer.sliderUpdateInterval);
+          } else {
+            player.$.progress.value = player.$.audio.currentTime * 1000;
+            player.currentTime = player.$.audio.currentTime;
+          }
+        }, 120);
+      },
+
+      _convertSecToMin: function(seconds) {
+        if (seconds === 0) {
+          return '';
+        }
+        var minutes = Math.floor(seconds / 60);
+        var secondsToCalc = Math.floor(seconds % 60) + '';
+        return minutes + ':' + (secondsToCalc.length < 2 ? '0' + secondsToCalc : secondsToCalc);
       }
+
     });
   </script>
 
