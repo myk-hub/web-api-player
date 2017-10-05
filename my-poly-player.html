@@ -10,8 +10,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-progress/paper-progress.html">
-<link rel="import" href="../iron-icon/iron-icon.html">
-<link rel="import" href="../iron-icons/iron-icons.html">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link href="https://fonts.googleapis.com/css?family=Dosis" rel="stylesheet">
 <!--
@@ -32,48 +30,60 @@ Example:
     <style>
      #wrapper {
        width: 80%;
-       border: solid 1px black;
-       border-radius: 4px;
-       margin: 1.5% auto;
+       margin: 0% auto;
        cursor: pointer;
+       display: -webkit-flex;
+       display: -ms-flexbox;
        display: flex;
+       -ms-flex-direction: row;
+       -webkit-flex-direction: row;
        flex-direction: row;
-       justify-content: space-between;
        align-items: center;
      }
 
-     #left {
-       border-radius: 3px;
-       background-color: black;
-     }
-     #flex {
-     }
      paper-progress {
        width: 100%;
        --paper-progress-active-color: black;
-       --paper-progress-height: 1em;
+       --paper-progress-height: 0.2em;
        --paper-progress-container-color: #D3DAE3;
      }
+
+    .flex {
+      -ms-flex-grow: 1;
+      -webkit-flex-grow: 1;
+      flex-grow: 1;
+    }
+
      #play,
      #pause {
        font-size: 2em;
        padding: 0.2em;
-       color: white;
-
+       color: black;
      }
+
      #title {
        font-size: 1.4em;
      }
+
      #duration {
        padding-right: 1em;
+       margin-left: 4px;
      }
+
+    #right {
+      position: absolute;
+      padding-left: 77%;
+    }
+
     </style>
 
     <div id="wrapper" class="layout-horizontal" on-click="playPause">
 
       <div id="left" class="self-start">
-         <i id="play" class="fa fa-play fit" hidden$="{{ isPlaying }}"></i>
-         <i id="pause"class="fa fa-pause fit" hidden$="{{ !isPlaying }}"></i>
+         <i id="play" class="fa fa-play-circle fit" hidden$="{{ isPlaying }}"></i>
+         <i id="pause"class="fa fa-pause-circle fit" hidden$="{{ !isPlaying }}"></i>
+         <!-- <i id="next" class="fa fa-step-backward" aria-hidden="true"></i>
+         <i id="prev" class="fa fa-step-forward" aria-hidden="true"></i> -->
       </div>
 
 
@@ -85,7 +95,7 @@ Example:
 
       <div id="right" class="self-end">
         <div id="duration" class="fit">
-          <span class="fit">{{ _convertSecToMin(duration) }}</span>
+          <span role="timer" class="fit" aria-label="Audio Track Length">{{ _convertSecToMin(timeLeft) }}</span>
         </div>
       </div>
 
@@ -93,76 +103,80 @@ Example:
   </template>
 
   <script>
-    Polymer({
-      is: 'my-poly-player',
+  Polymer({
+    is: 'my-poly-player',
 
-      properties: {
-        title: String,
-        src:   String,
-        isPlaying: {
-          type:  Boolean,
-          value: false
-        },
-        duration: {
-          type:  Number,
-          value: 0
-        }
+    properties: {
+      title: String,
+      src:   String,
+      isPlaying: {
+        type:  Boolean,
+        value: false
       },
+      duration: {
+        type:  Number,
+        value: 0
+      },
+      timeLeft: {
+        type: Number,
+        value: 0
+      }
+    },
 
-      playPause: function(e) {
-        e.preventDefault();
+    playPause(e) {
+      e.preventDefault();
 
-        var player = this;
+      const player = this;
 
-        if ( player.$.audio.paused ) {
-          player.$.audio.play();
-          player.isPlaying = true;
+      if ( player.$.audio.paused) {
+        player.$.audio.play();
+        player.isPlaying = true;
+      } else {
+        player.$.audio.pause();
+        player.isPlaying = false;
+      }
+    },
+
+    listeners: {
+      'audio.loadedmetadata': '_onCanPlay',
+      'audio.playing':        '_startProgressTimer'
+    },
+
+    _onCanPlay() {
+      const player = this;
+      player.$.progress.max = player.$.audio.duration * 1000;
+      player.timeLeft = player.$.audio.duration;
+    },
+
+    _startProgressTimer() {
+      const player = this;
+      player.timer = {};
+      if (player.timer.sliderUpdateInterval) {
+        clearInterval(player.timer.sliderUpdateInterval);
+      }
+      player.timer.sliderUpdateInterval = setInterval( () => {
+        if ( player.isPlaying ) {
+          player.currentTime = player.$.audio.currentTime;
+          player.timeLeft = player.$.audio.duration - player.currentTime;
+          player.$.progress.value = player.$.audio.currentTime * 1000;
+
         } else {
-          player.$.audio.pause();
-          player.isPlaying = false;
-        }
-      },
-
-      listeners: {
-        'audio.loadedmetadata': '_onCanPlay',
-        'audio.playing':        '_startProgressTimer'
-      },
-
-      _onCanPlay: function() {
-        var player = this;
-        player.$.progress.max = player.$.audio.duration * 1000;
-        player.duration = player.$.audio.duration;
-      },
-
-      _startProgressTimer: function() {
-
-        var player = this;
-        player.timer = {};
-
-        if (player.timer.sliderUpdateInterval) {
           clearInterval(player.timer.sliderUpdateInterval);
         }
+      }, 60);
+    },
 
-        player.timer.sliderUpdateInterval = setInterval( function(){
-          if ( player.$.audio.paused ) {
-            clearInterval(player.timer.sliderUpdateInterval);
-          } else {
-            player.$.progress.value = player.$.audio.currentTime * 1000;
-            player.currentTime = player.$.audio.currentTime;
-          }
-        }, 120);
-      },
 
-      _convertSecToMin: function(seconds) {
-        if (seconds === 0) {
-          return '';
-        }
-        var minutes = Math.floor(seconds / 60);
-        var secondsToCalc = Math.floor(seconds % 60) + '';
-        return minutes + ':' + (secondsToCalc.length < 2 ? '0' + secondsToCalc : secondsToCalc);
+    _convertSecToMin(seconds) {
+      if (seconds === 0) {
+        return '';
       }
+      const minutes = Math.floor(seconds / 60);
+      const secondsToCalc = `${Math.floor(seconds % 60)}`;
+      return `${minutes}:${secondsToCalc.length < 2 ? '0' + secondsToCalc : secondsToCalc}`;
+    }
 
-    });
+  });
   </script>
 
 </dom-module>
