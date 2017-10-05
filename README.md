@@ -1,5 +1,4 @@
 # web-api-player
- https://usernamen7.github.io/web-api-player/docs
 ## seed-element
 
 An element providing a starting point for your own reusable Polymer elements.
